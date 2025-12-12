@@ -241,6 +241,10 @@ export const InboundOIDCForm: FunctionComponent<InboundOIDCFormPropsInterface> =
         applicationFeatureConfig,
         ApplicationManagementConstants.FEATURE_DICTIONARY.get("APPLICATION_EDIT_ACCESS_CONFIG_BACK_CHANNEL_LOGOUT")
     );
+    const isFrontChannelLogoutEnabled: boolean = isFeatureEnabled(
+        applicationFeatureConfig,
+        ApplicationManagementConstants.FEATURE_DICTIONARY.get("APPLICATION_EDIT_ACCESS_CONFIG_FRONT_CHANNEL_LOGOUT")
+    );
     const isEnforceClientSecretPermissionEnabled: boolean = isFeatureEnabled(
         applicationFeatureConfig,
         ApplicationManagementConstants.FEATURE_DICTIONARY.get(
@@ -1267,8 +1271,9 @@ export const InboundOIDCForm: FunctionComponent<InboundOIDCFormPropsInterface> =
                 // Remove un-allowed grant types.
                 if (template
                     && template.id
-                    && get(applicationConfig.getAllowedGrantTypes(orgType), template.id)
-                    && !applicationConfig.getAllowedGrantTypes(orgType)[ template.id ].includes(name)
+                    && get(applicationConfig.allowedGrantTypes, template.id)
+                    && !applicationConfig.allowedGrantTypes[ isSubOrganization() ? "sub-organization-application" :
+                        template.id ].includes(name)
                     && ApplicationManagementConstants.AVAILABLE_GRANT_TYPES.includes(name)) {
 
                     return;
@@ -1276,7 +1281,7 @@ export const InboundOIDCForm: FunctionComponent<InboundOIDCFormPropsInterface> =
 
                 if (
                     template?.[ApplicationManagementConstants.ORIGINAL_TEMPLATE_ID_PROPERTY] &&
-                    !applicationConfig.getAllowedGrantTypes(orgType)[
+                    !applicationConfig.allowedGrantTypes[
                         template[ApplicationManagementConstants.ORIGINAL_TEMPLATE_ID_PROPERTY]]?.includes(name)
                 ) {
                     return;
@@ -1456,7 +1461,9 @@ export const InboundOIDCForm: FunctionComponent<InboundOIDCFormPropsInterface> =
                     backChannelLogoutUrl: isBackChannelLogoutEnabled
                         ? values.get("backChannelLogoutUrl")
                         : initialValues?.logout?.backChannelLogoutUrl,
-                    frontChannelLogoutUrl: values.get("frontChannelLogoutUrl")
+                    frontChannelLogoutUrl: isFrontChannelLogoutEnabled
+                        ? values.get("frontChannelLogoutUrl")
+                        : initialValues?.logout?.frontChannelLogoutUrl
                 },
                 publicClient: !isMobileApplication ? values.get("supportPublicClients")?.length > 0 : true,
                 refreshToken: {
@@ -2344,7 +2351,6 @@ export const InboundOIDCForm: FunctionComponent<InboundOIDCFormPropsInterface> =
                 && !isSystemApplication
                 && !isDefaultApplication
                 && !isM2MApplication
-                && !isSubOrganization()
                 && (
                     <Grid.Row columns={ 2 } data-componentid={ testId + "-hybrid-flow" }>
                         <Grid.Column mobile={ 16 } tablet={ 16 } computer={ 16 }>
@@ -3909,15 +3915,7 @@ export const InboundOIDCForm: FunctionComponent<InboundOIDCFormPropsInterface> =
                             <Divider hidden />
                         </Grid.Column>
                         <Grid.Column mobile={ 16 } tablet={ 16 } computer={ 16 }>
-                            <Heading as="h4">
-                                {
-                                    applicationConfig.inboundOIDCForm.showFrontChannelLogout
-                                        ? t("applications:forms.inboundOIDC.sections" +
-                                            ".logoutURLs.heading")
-                                        : t("applications:forms.inboundOIDC.sections" +
-                                            ".logoutURLs.headingSingular")
-                                }
-                            </Heading>
+                            <Heading as="h4">Logout URLs</Heading>
                             <Divider hidden />
                             <Field
                                 ref={ backChannelLogoutUrl }
@@ -3959,7 +3957,8 @@ export const InboundOIDCForm: FunctionComponent<InboundOIDCFormPropsInterface> =
                     </Grid.Row>
                 )
             }
-            { applicationConfig.inboundOIDCForm.showFrontChannelLogout
+            { isFrontChannelLogoutEnabled
+                && !isSubOrganization()
                 && !isSystemApplication
                 && !isDefaultApplication
                 && (
@@ -3995,9 +3994,17 @@ export const InboundOIDCForm: FunctionComponent<InboundOIDCFormPropsInterface> =
                                 readOnly={ readOnly }
                                 data-testid={ `${ testId }-front-channel-logout-url-input` }
                             />
+                            <Hint>
+                                { t("applications:forms.inboundOIDC.sections" +
+                                        ".logoutURLs.fields.front.hint", {
+                                    productName: config.ui.productName
+                                }) }
+                            </Hint>
                         </Grid.Column>
                     </Grid.Row>
-                ) }
+                )
+            }
+
             { /*Request Object Signature*/ }
             {
                 !isSPAApplication

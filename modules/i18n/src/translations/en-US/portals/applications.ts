@@ -1988,6 +1988,8 @@ export const applications: ApplicationsNS = {
                             }
                         },
                         front: {
+                            hint: "The browser-based logout URL that {{productName}} will redirect to " +
+                                "after logout to perform client-side session cleanup.",
                             label: "Front channel logout URL",
                             placeholder: "Enter the Front Channel Logout URL",
                             validations: {
